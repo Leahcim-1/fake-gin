@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-01-06 18:30:38
- * @LastEditTime: 2021-01-07 17:15:47
+ * @LastEditTime: 2021-01-12 18:04:36
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /fake-gin/fg.go
@@ -15,35 +15,16 @@ import (
 )
 
 // HandleFunc is a ....
-type HandleFunc func(http.ResponseWriter, *http.Request)
+type HandleFunc func(c *Context)
 
 // App is a ...
 type App struct {
-	router map[string]HandleFunc
+	router *Router
 }
 
 // New is a
 func New() *App {
-	return &App{
-		router: make(map[string]HandleFunc),
-	}
-}
-
-func getKey(m string, p string) string {
-	return m + "-" + p
-}
-
-func (app *App) addRoute(method string, path string, handleFunc HandleFunc) {
-	key := getKey(method, path)
-	app.router[key] = handleFunc
-}
-
-func (app *App) GET(path string, handleFunc HandleFunc) {
-	app.addRoute("GET", path, handleFunc)
-}
-
-func (app *App) POST(path string, handleFunc HandleFunc) {
-	app.addRoute("POST", path, handleFunc)
+	return &App{router: NewRouter()}
 }
 
 func (app *App) Run(port string) (err error) {
@@ -52,11 +33,14 @@ func (app *App) Run(port string) (err error) {
 }
 
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	key := r.Method + "-" + r.URL.Path
-	handler, ok := app.router[key]
-	if !ok {
-		fmt.Fprintf(w, "Status 404 %s\n", r.URL)
-		return
-	}
-	handler(w, r)
+	c := NewContext(w, r)
+	app.router.handle(c)
+}
+
+func (app *App) GET(path string, handleFunc HandleFunc) {
+	app.router.addRoute("GET", path, handleFunc)
+}
+
+func (app *App) POST(path string, handleFunc HandleFunc) {
+	app.router.addRoute("POST", path, handleFunc)
 }
